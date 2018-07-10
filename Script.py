@@ -18,9 +18,10 @@ def findbluetooth():
 	else:
 		return nearby_devices[j-1][0]
 
-def encrypt(key, filename):
+def encrypt(key,filedir,filename):
 	chunksize = 64*1024
-	outputFile = "(encrypted)"+filename
+	outputFile = filedir+"/"+"(encrypted)"+filename
+	filename = filedir+"/"+filename
 	filesize = str(os.path.getsize(filename)).zfill(16)
 	IV = ''
 
@@ -43,10 +44,13 @@ def encrypt(key, filename):
 					chunk += ' ' * (16 - (len(chunk) % 16))
 
 				outfile.write(encryptor.encrypt(chunk))
+	os.remove(filename)
+	os.popen('attrib +h '+outputFile)
 
-def decrypt(key, filename):
+def decrypt(key,filedir,filename):
 	chunksize = 64*1024
-	outputFile = filename[11:]
+	outputFile = filedir+"/"+filename
+	filename = filedir+"/"+"(encrypted)"+filename
 
 	with open(filename, 'rb') as infile:
 		filesize = long(infile.read(16))
@@ -63,7 +67,7 @@ def decrypt(key, filename):
 
 				outfile.write(decryptor.decrypt(chunk))
 			outfile.truncate(filesize)
-
+	os.remove(filename)
 
 
 def getKey(password):
@@ -79,36 +83,38 @@ def Main():
 	try:
 		cursor.execute('''CREATE TABLE CREDENTIALS
 		(ID INTEGER PRIMARY KEY    AUTOINCREMENT,
+		FILEDIR CHAR    NOT NULL,
 		FILENAME CHAR    NOT NULL,
 		KEY      CHAR    NOT NULL);''')
 	except:
 		pass
 	choice = raw_input("Would you like to (E)ncrypt or (D)ecrypt?: ")
 	if choice == 'E':
-		filename = raw_input("File to encrypt: ")
+		filedir = raw_input("Directory of File to encrypt: ")
+		filename = raw_input("File Name to encrypt: ")
 		device_mac = findbluetooth()
 	 	password = raw_input("Password: ")+device_mac
 		password = getKey(password)
-		cursor.execute("INSERT INTO CREDENTIALS (FILENAME,KEY) \
-		VALUES ( ?,? )",(filename,password,));
+		cursor.execute("INSERT INTO CREDENTIALS (FILEDIR,FILENAME,KEY) \
+		VALUES ( ?,?,? )",(filedir,filename,password,));
 		con.commit()
 		con.close()
-		encrypt(password, filename)
-		os.popen('attrib +h (encrypted)' + filename)
-		os.remove(filename)
+		encrypt(password, filedir,filename)
+
 	elif choice == 'D':
 	  	device_mac = findbluetooth()
 		password = raw_input("Password: ")+device_mac
 		password = getKey(password)
-		files = cursor.execute("SELECT FILENAME FROM CREDENTIALS WHERE KEY = ?",(password,));
+		files = cursor.execute("SELECT FILEDIR,FILENAME FROM CREDENTIALS WHERE KEY = ?",(password,));
 		files = list(files)
 		for i in range(len(files)):
-			print(str(i+1)+"-"+str(files[i][0]))
+			print(str(i+1)+"-"+str(files[i][0])+"/"+str(files[i][1]))
 		fileindex = int(input())
-		filename = "(encrypted)"+files[fileindex-1][0]
+		filedir =str(files[fileindex-1][0])
+		filename =str(files[fileindex-1][1])
+		print(filedir,filename)
+		decrypt(password,filedir,filename)
 		con.close()
-		decrypt(password, filename)
-	 	os.remove(filename)
 	else:
 		print "No Option selected, closing..."
 

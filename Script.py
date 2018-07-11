@@ -95,11 +95,11 @@ def Main():
 		device_mac = findbluetooth()
 	 	password = raw_input("Password: ")+device_mac
 		password = getKey(password)
+		encrypt(password, filedir,filename)
 		cursor.execute("INSERT INTO CREDENTIALS (FILEDIR,FILENAME,KEY) \
 		VALUES ( ?,?,? )",(filedir,filename,password,));
 		con.commit()
 		con.close()
-		encrypt(password, filedir,filename)
 
 	elif choice == 'D':
 	  	device_mac = findbluetooth()

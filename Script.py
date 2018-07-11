@@ -112,7 +112,6 @@ def Main():
 		fileindex = int(input())
 		filedir =str(files[fileindex-1][0])
 		filename =str(files[fileindex-1][1])
-		print(filedir,filename)
 		decrypt(password,filedir,filename)
 		con.close()
 	else:
